@@ -2,32 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TargetMover : MonoBehaviour {
+public class TargetMover : MonoBehaviour
+{
 
-    Vector3 worldBottomLeft;
-    Vector3 worldBottomRight;
-    Vector3 worldTopLeft;
-    Vector3 worldTopRight;
-
-    void Start () {
-        
-
-        worldBottomLeft = transform.position - Vector3.right * Grid.Instance.gridWorldSize.x / 2 - Vector3.forward * Grid.Instance.gridWorldSize.y / 2;
-        worldBottomRight = transform.position + Vector3.right * Grid.Instance.gridWorldSize.x / 2 - Vector3.forward * Grid.Instance.gridWorldSize.y / 2;
-
-        worldTopLeft = transform.position - Vector3.right * Grid.Instance.gridWorldSize.x / 2 + Vector3.forward * Grid.Instance.gridWorldSize.y / 2;
-        worldTopRight = transform.position + Vector3.right * Grid.Instance.gridWorldSize.x / 2 + Vector3.forward * Grid.Instance.gridWorldSize.y / 2;
-
-        StartCoroutine(MoveTarget());
-    }
-
-    IEnumerator MoveTarget()
+    private void Update()
     {
-        while (true)
+        if (Input.GetMouseButtonDown(0))
         {
-            yield return new WaitForSeconds(3f);
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
 
-            transform.position = new Vector3(Random.Range(worldBottomLeft.x, worldBottomRight.x), 0, Random.Range(worldTopLeft.x, worldTopRight.x));
+            if (Physics.Raycast(ray, out hit))
+            {
+                transform.position = hit.point;
+            }
         }
     }
 }
