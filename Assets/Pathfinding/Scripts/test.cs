@@ -5,6 +5,7 @@ using UnityEngine;
 public class test : MonoBehaviour {
 
     Collider m_Collider;
+    float speed = 2f;
 
     void Start()
     {
@@ -16,7 +17,8 @@ public class test : MonoBehaviour {
 
     private void Update()
     {
-        transform.Translate(Vector3.forward * Time.deltaTime);
+        var v3 = new Vector3(Input.GetAxisRaw("Horizontal"), 0.0f, Input.GetAxisRaw("Vertical"));
+        transform.Translate(speed * v3.normalized * Time.deltaTime);
         Grid.Instance.UpdatePartialGrid(m_Collider.bounds);
     }
 

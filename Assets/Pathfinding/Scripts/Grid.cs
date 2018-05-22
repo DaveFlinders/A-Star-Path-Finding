@@ -14,8 +14,9 @@ public class Grid : MonoBehaviour
 	public int obstacleProximityPenalty = 10;
 	Dictionary<int,int> walkableRegionsDictionary = new Dictionary<int, int>();
 	LayerMask walkableMask;
+    Vector3 worldBottomLeft;
 
-	Node[,] grid;
+    Node[,] grid;
 
 	float nodeDiameter;
 	int gridSizeX, gridSizeY;
@@ -35,7 +36,9 @@ public class Grid : MonoBehaviour
 			walkableRegionsDictionary.Add((int)Mathf.Log(region.terrainMask.value,2),region.terrainPenalty);
 		}
 
-		FullGridScan();
+        worldBottomLeft = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
+
+        FullGridScan();
 	}
 
 	public int MaxSize
@@ -58,10 +61,13 @@ public class Grid : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// This is a full grid scan
+    /// Use at the game start -- REQUIRED!
+    /// </summary>
     void FullGridScan()
     {
 		grid = new Node[gridSizeX,gridSizeY];
-		Vector3 worldBottomLeft = transform.position - Vector3.right * gridWorldSize.x/2 - Vector3.forward * gridWorldSize.y/2;
 
         lock (PathRequestManager.Instance.Results)
         {
@@ -69,24 +75,33 @@ public class Grid : MonoBehaviour
             {
                 for (int y = 0; y < gridSizeY; y++)
                 {
-                    ScanGridAtCoord(worldBottomLeft, x, y);
+                    ScanGridAtCoord(x, y);
                 }
             }
         }
 
 		BlurPenaltyMap (3);
 
-	}
+    }
 
+    /// <summary>
+    /// This function will update the grid using the passed in game object collider bounds
+    /// This can be slow if used every frame
+    /// </summary>
+    /// <param name="objectBounds"></param>
     public void UpdatePartialGrid(Bounds objectBounds)
     {
-        Vector3 worldBottomLeft = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
+        int startX = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.x)) - Mathf.Abs(Mathf.FloorToInt(objectBounds.min.x)) - Mathf.CeilToInt(nodeDiameter + nodeRadius);
+        int endX = Mathf.CeilToInt(Mathf.Abs(worldBottomLeft.x)) + Mathf.Abs(Mathf.CeilToInt(objectBounds.max.x)) + Mathf.CeilToInt(nodeDiameter + nodeRadius);
+
+        int startY = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.FloorToInt(objectBounds.min.z) - Mathf.CeilToInt(nodeDiameter + nodeRadius);
+        int endY = Mathf.CeilToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.CeilToInt(objectBounds.max.z) + Mathf.CeilToInt(nodeDiameter + nodeRadius);
 
         lock (PathRequestManager.Instance.Results)
         {
-            for (int x = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.x)) - Mathf.Abs(Mathf.FloorToInt(objectBounds.min.x)) - 1; x < Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.x)) + Mathf.Abs(Mathf.FloorToInt(objectBounds.max.x)) + 1; x++)
+            for (int x = startX; x < endX; x++)
             {
-                for (int y = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.FloorToInt(objectBounds.min.z) - 1; y < Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.FloorToInt(objectBounds.max.z) + 1; y++)
+                for (int y = startY; y < endY; y++)
                 {
                     if (x > gridSizeX || y > gridSizeY)
                     {
@@ -96,8 +111,10 @@ public class Grid : MonoBehaviour
 
                     Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
 
+                    //Reset the node to walkable
                     grid[x, y] = new Node(true, worldPoint, x, y, 0);
-                    ScanGridAtCoord(worldBottomLeft, x, y);
+                    //Scan the node
+                    ScanGridAtCoord(x, y);
                    
                 }
             }
@@ -107,7 +124,7 @@ public class Grid : MonoBehaviour
 
     }
 
-    void ScanGridAtCoord(Vector3 worldBottomLeft, int x, int y)
+    void ScanGridAtCoord(int x, int y)
     {
         Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
         bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
