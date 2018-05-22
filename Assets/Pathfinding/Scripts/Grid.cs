@@ -74,7 +74,6 @@ public class Grid : MonoBehaviour
             }
         }
 
-
 		BlurPenaltyMap (3);
 
 	}
@@ -85,14 +84,27 @@ public class Grid : MonoBehaviour
 
         lock (PathRequestManager.Instance.Results)
         {
-            for (int x = Mathf.CeilToInt(objectBounds.min.x); x < Mathf.CeilToInt(objectBounds.max.x); x++)
+            for (int x = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.x)) - Mathf.Abs(Mathf.FloorToInt(objectBounds.min.x)) - 1; x < Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.x)) + Mathf.Abs(Mathf.FloorToInt(objectBounds.max.x)) + 1; x++)
             {
-                for (int y = Mathf.CeilToInt(objectBounds.min.z); y < Mathf.CeilToInt(objectBounds.max.z); y++)
+                for (int y = Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.FloorToInt(objectBounds.min.z) - 1; y < Mathf.FloorToInt(Mathf.Abs(worldBottomLeft.z)) + Mathf.FloorToInt(objectBounds.max.z) + 1; y++)
                 {
+                    if (x > gridSizeX || y > gridSizeY)
+                    {
+                        Debug.LogWarning("UpdatePartialGrid out of bounds at X: " + x + " " + y + " :: failed.");
+                        continue;
+                    }
+
+                    Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
+
+                    grid[x, y] = new Node(true, worldPoint, x, y, 0);
                     ScanGridAtCoord(worldBottomLeft, x, y);
+                   
                 }
             }
         }
+
+        BlurPenaltyMap(3);
+
     }
 
     void ScanGridAtCoord(Vector3 worldBottomLeft, int x, int y)
@@ -113,7 +125,6 @@ public class Grid : MonoBehaviour
         {
             movementPenalty += obstacleProximityPenalty;
         }
-
 
         grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty);
     }
